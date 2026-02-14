@@ -26,5 +26,6 @@
             window.scrollTo({top: 0, behavior: 'smooth'});
         };
 
+        // Auto Load
         setTimeout(function() { window.renderTigerData('tiger-home-main-grid'); }, 500);
         
