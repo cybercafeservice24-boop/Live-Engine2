@@ -15,7 +15,7 @@ var adLinks = ["#", "#", "#", "#"];
 var tgLink = "https://t.me/sexyxx1222";
 var adDone = false;
 var resetTime = 120000; 
-var allTigerVideos = []; // 🐯 Locked for Smart Search
+var allTigerVideos = []; 
 
 const tigerLangMap = { 'IN':'hi','ES':'es','SA':'ar','AE':'ar','RU':'ru','FR':'fr','DE':'de','JP':'ja','BR':'pt' };
 
@@ -98,13 +98,14 @@ function stopTigerPreview(el) {
     if(vid) { vid.pause(); img.style.opacity = '1'; }
 }
 
-// 🐯 REAL PLAYER LOGIC INTEGRATION (QUALITY & SCRUBBING ADDED)
-let tigerRotate = 0; // 🐯 New State
+// 🐯 REAL PLAYER LOGIC INTEGRATION (PLAY BUTTON UI UPGRADED)
+let tigerRotate = 0;
 function initTigerRealControls() {
     const v = document.getElementById('tigerRealPlayer');
     const p = document.getElementById('tiger-play-icon');
     const s = document.getElementById('tiger-sound-icon');
     const l = document.getElementById('tiger-real-loader');
+    const bigPlay = document.getElementById('tiger-big-play');
     
     if(!v || !l) return;
 
@@ -114,9 +115,23 @@ function initTigerRealControls() {
     });
 
     window.toggleTigerPlay = function(e) {
-        e.stopPropagation();
-        if(v.paused) { v.play(); p.innerHTML = "⏸"; }
-        else { v.pause(); p.innerHTML = "▶"; }
+        if(e) e.stopPropagation();
+        if(v.paused) { 
+            v.play(); 
+            p.innerHTML = "⏸"; 
+            if(bigPlay) {
+                bigPlay.style.opacity = "0";
+                bigPlay.style.pointerEvents = "none";
+            }
+        }
+        else { 
+            v.pause(); 
+            p.innerHTML = "▶"; 
+            if(bigPlay) {
+                bigPlay.style.opacity = "1";
+                bigPlay.style.pointerEvents = "auto";
+            }
+        }
     };
 
     window.toggleTigerMute = function(e) {
@@ -125,7 +140,6 @@ function initTigerRealControls() {
         s.innerHTML = v.muted ? "🔇" : "🔊";
     };
 
-    // 🐯 NEW: ROTATE LOGIC
     window.rotateTiger = function(e) {
         e.stopPropagation();
         tigerRotate = (tigerRotate + 90) % 360;
@@ -138,7 +152,6 @@ function initTigerRealControls() {
         }
     };
 
-    // 🐯 NEW: FULLSCREEN LOGIC
     window.fullTiger = function(e) {
         e.stopPropagation();
         const box = v.parentElement.parentElement;
@@ -165,8 +178,14 @@ function initTigerRealControls() {
         v.currentTime = pos * v.duration;
     };
     
-    v.onplay = () => { p.innerHTML = "⏸"; };
-    v.onpause = () => { p.innerHTML = "▶"; };
+    v.onplay = () => { 
+        p.innerHTML = "⏸"; 
+        if(bigPlay) bigPlay.style.opacity = "0";
+    };
+    v.onpause = () => { 
+        p.innerHTML = "▶"; 
+        if(bigPlay) bigPlay.style.opacity = "1";
+    };
 }
 
 function tigerUniversalMapping() {
@@ -359,6 +378,22 @@ window.onload = function() { runTigerSecurity(); };
 
 body { top: 0 !important; position: static !important; background: #000; color: #fff; font-family: 'Roboto', sans-serif; margin: 0; padding: 0; overflow-x: hidden; min-height: 100vh; cursor: pointer; }
 
+/* 🐯 NEW: CENTER PLAY BUTTON PULSE */
+@keyframes tigerPulse {
+    0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); transform: translate(-50%, -50%) scale(1); }
+    70% { box-shadow: 0 0 0 20px rgba(255, 0, 0, 0); transform: translate(-50%, -50%) scale(1.1); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); transform: translate(-50%, -50%) scale(1); }
+}
+
+#tiger-big-play {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 85px; height: 85px; background: rgba(255, 0, 0, 0.85);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    z-index: 501; cursor: pointer; transition: 0.4s;
+    box-shadow: 0 0 30px #ff0000; border: 3px solid #fff;
+    animation: tigerPulse 2s infinite;
+}
+
 /* 🐯 TIGER 2.6 - REAL PLAYER UI UPGRADE */
 .tiger-real-controls {
     position: absolute; bottom: 0; left: 0; width: 100%; 
@@ -503,6 +538,10 @@ header { background: #000; padding: 10px 4%; border-bottom: 2px solid #ff0000; p
     <span style='color:#ffcc00;'>👁️ 3,84,210 Views</span>
     </div>
     <div class='player-box' id="tigerBox">
+        <div id="tiger-big-play" onclick="toggleTigerPlay(event)">
+            <svg viewBox="0 0 24 24" style="fill:white; width:45px; height:45px; margin-left:5px;"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+
         <div class='tiger-video-wrap'><iframe src="ABOUT:BLANK" allowfullscreen="true"></iframe></div>
         
         <div class="tiger-real-controls">
