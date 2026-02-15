@@ -15,6 +15,7 @@ var adLinks = ["#", "#", "#", "#"];
 var tgLink = "https://t.me/sexyxx1222";
 var adDone = false;
 var resetTime = 120000; 
+var allTigerVideos = []; // 🐯 Locked for Smart Search
 
 const tigerLangMap = { 'IN':'hi','ES':'es','SA':'ar','AE':'ar','RU':'ru','FR':'fr','DE':'de','JP':'ja','BR':'pt' };
 
@@ -81,8 +82,92 @@ async function tigerGlobalEngine() {
     } catch (e) { console.log("Tiger Stealth Mode Active"); }
 }
 
-function startTigerPreview(el) { var loader = el.querySelector('.x-loader-bar'); if(loader) loader.style.width = "100%"; }
-function stopTigerPreview(el) { var loader = el.querySelector('.x-loader-bar'); if(loader) loader.style.width = "0%"; }
+function startTigerPreview(el) { 
+    var loader = el.querySelector('.x-loader-bar'); 
+    if(loader) loader.style.width = "100%"; 
+    var vid = el.querySelector('video');
+    var img = el.querySelector('img');
+    if(vid) { vid.play(); img.style.opacity = '0'; }
+}
+
+function stopTigerPreview(el) { 
+    var loader = el.querySelector('.x-loader-bar'); 
+    if(loader) loader.style.width = "0%"; 
+    var vid = el.querySelector('video');
+    var img = el.querySelector('img');
+    if(vid) { vid.pause(); img.style.opacity = '1'; }
+}
+
+// 🐯 REAL PLAYER LOGIC INTEGRATION (QUALITY & SCRUBBING ADDED)
+let tigerRotate = 0; // 🐯 New State
+function initTigerRealControls() {
+    const v = document.getElementById('tigerRealPlayer');
+    const p = document.getElementById('tiger-play-icon');
+    const s = document.getElementById('tiger-sound-icon');
+    const l = document.getElementById('tiger-real-loader');
+    
+    if(!v || !l) return;
+
+    v.addEventListener('timeupdate', () => {
+        const pct = (v.currentTime / v.duration) * 100;
+        l.style.width = pct + "%";
+    });
+
+    window.toggleTigerPlay = function(e) {
+        e.stopPropagation();
+        if(v.paused) { v.play(); p.innerHTML = "⏸"; }
+        else { v.pause(); p.innerHTML = "▶"; }
+    };
+
+    window.toggleTigerMute = function(e) {
+        e.stopPropagation();
+        v.muted = !v.muted;
+        s.innerHTML = v.muted ? "🔇" : "🔊";
+    };
+
+    // 🐯 NEW: ROTATE LOGIC
+    window.rotateTiger = function(e) {
+        e.stopPropagation();
+        tigerRotate = (tigerRotate + 90) % 360;
+        v.style.transform = `rotate(${tigerRotate}deg)`;
+        if(tigerRotate === 90 || tigerRotate === 270) {
+            v.style.width = v.parentElement.offsetHeight + "px";
+            v.style.objectFit = "contain";
+        } else {
+            v.style.width = "100%";
+        }
+    };
+
+    // 🐯 NEW: FULLSCREEN LOGIC
+    window.fullTiger = function(e) {
+        e.stopPropagation();
+        const box = v.parentElement.parentElement;
+        if (!document.fullscreenElement) box.requestFullscreen();
+        else document.exitFullscreen();
+    };
+
+    window.toggleQualityMenu = function(e) {
+        e.stopPropagation();
+        const menu = document.getElementById('tigerQualityMenu');
+        menu.style.display = (menu.style.display === 'flex') ? 'none' : 'flex';
+    };
+
+    window.changeQuality = function(q) {
+        document.getElementById('current-quality').innerText = q;
+        document.getElementById('tigerQualityMenu').style.display = 'none';
+        l.style.opacity = '0.3';
+        setTimeout(() => { l.style.opacity = '1'; }, 500);
+    };
+
+    window.scrubVideo = function(e) {
+        const rect = document.getElementById('tiger-progress-wrap').getBoundingClientRect();
+        const pos = (e.pageX - rect.left) / rect.width;
+        v.currentTime = pos * v.duration;
+    };
+    
+    v.onplay = () => { p.innerHTML = "⏸"; };
+    v.onpause = () => { p.innerHTML = "▶"; };
+}
 
 function tigerUniversalMapping() {
     var wrap = document.querySelector('.tiger-video-wrap');
@@ -91,14 +176,24 @@ function tigerUniversalMapping() {
         var videoObj = wrap.querySelector('video') || wrap.querySelector('iframe');
         if (videoObj) {
             if(videoObj.tagName === 'VIDEO') {
-                videoObj.muted = true;
-                videoObj.play();
-                setTimeout(function() { if(mask.style.display !== 'none') videoObj.pause(); }, 10000);
+                videoObj.muted = false;
+                videoObj.controls = false; 
+                initTigerRealControls();
             }
-            mask.style.display = 'flex';
+            mask.style.display = 'none'; 
             clearInterval(checkInjection);
         }
     }, 1500);
+}
+
+async function fetchTigerData() {
+    try {
+        const res = await fetch('tiger-videos.json');
+        allTigerVideos = await res.json();
+        if(allTigerVideos.length > 0) {
+            renderTigerData('tiger-home-main-grid', allTigerVideos.length, 'LATEST UPDATES', true);
+        }
+    } catch(e) { console.log("Tiger: No JSON found."); }
 }
 
 async function runTigerSecurity() {
@@ -119,6 +214,7 @@ async function runTigerSecurity() {
         startHighTrafficCounter();
         tigerGlobalEngine();
         tigerUniversalMapping();
+        await fetchTigerData(); 
         tigerLoadPersistentHome();
     }
 }
@@ -146,58 +242,93 @@ function tigerSearch(q) {
     tigerSaveInt(q);
     document.getElementById('tiger-home-grid-area').style.display = 'block';
     document.getElementById('tiger-player-area').style.display = 'none';
-    document.querySelector('#tiger-home-grid-area h3').innerText = "SEARCH RESULTS: " + q.toUpperCase();
-    renderTigerData('tiger-home-main-grid', 40, q);
+    
+    if(allTigerVideos.length > 0) {
+        const filtered = allTigerVideos.filter(v => 
+            v.title.toLowerCase().includes(q.toLowerCase()) || 
+            v.tags?.toLowerCase().includes(q.toLowerCase()) ||
+            v.category?.toLowerCase().includes(q.toLowerCase())
+        );
+        renderTigerData('tiger-home-main-grid', filtered.length, "RESULTS: " + q, true, filtered);
+    } else {
+        document.querySelector('#tiger-home-grid-area h3').innerText = "SEARCH RESULTS: " + q.toUpperCase();
+        renderTigerData('tiger-home-main-grid', 40, q);
+    }
     window.scrollTo({top: 0, behavior: 'smooth'});
 }
 
 function tigerLoadPersistentHome() {
     const last = localStorage.getItem('tiger_int') || 'LATEST UPDATES';
-    renderTigerData('tiger-home-main-grid', 30, last);
+    if(allTigerVideos.length === 0) renderTigerData('tiger-home-main-grid', 30, last);
     const sBtn = document.querySelector('.search-bar-pro button');
     const sInp = document.querySelector('.search-bar-pro input');
     if(sBtn) sBtn.onclick = function() { tigerSearch(sInp.value); };
     if(sInp) sInp.onkeypress = function(e) { if(e.key === 'Enter') tigerSearch(sInp.value); };
 }
 
-function renderTigerData(tid, count, label) {
+function renderTigerData(tid, count, label, isReal = false, customList = null) {
     const el = document.getElementById(tid);
     if(el) {
         el.innerHTML = '';
-        for(let i=0; i<count; i++) { el.innerHTML += card(`showTigerPlayer('${label}')`, label); }
+        if(isReal) {
+            const list = customList || allTigerVideos;
+            document.querySelector('#tiger-home-grid-area h3').innerText = label.toUpperCase();
+            list.forEach(v => {
+                el.innerHTML += card(`showTigerPlayer('${v.videoUrl}', '${v.title}', '${v.id || ""}')`, v.title, v.thumbUrl, v.previewUrl);
+            });
+        } else {
+            for(let i=0; i<count; i++) { el.innerHTML += card(`showTigerPlayer('ABOUT:BLANK', '${label}')`, label); }
+        }
     }
 }
 
-function showTigerPlayer(niche) {
-    if(niche) tigerSaveInt(niche);
+function showTigerPlayer(videoUrl, title, vidId = "") {
     document.getElementById('tiger-home-grid-area').style.display = 'none';
     document.getElementById('tiger-player-area').style.display = 'block';
     
+    const wrap = document.querySelector('.tiger-video-wrap');
+    if(videoUrl.includes('.mp4')) {
+        wrap.innerHTML = `<video id="tigerRealPlayer" autoplay playsinline style="width:100%;height:100%;transition:0.3s;"><source src="${videoUrl}" type="video/mp4"></video>`;
+    } else {
+        wrap.innerHTML = `<iframe src="${videoUrl}" allowfullscreen="true" style="width:100%;height:100%;"></iframe>`;
+    }
+    
+    const videoData = allTigerVideos.find(v => v.id === vidId);
+    if(videoData) {
+        document.querySelector('.tiger-proof span:last-child').innerHTML = `👁️ ${videoData.views || "3,84,210"} Views`;
+    }
+
     const sTitle = document.getElementById('suggested-title');
     const sGrid = document.getElementById('tiger-master-grid');
-    sTitle.innerHTML = "🔥 SIMILAR VIDEOS FOR YOU";
+    sTitle.innerHTML = "🔥 SIMILAR TO: " + title;
     sTitle.style.display = 'block';
     sGrid.style.display = 'grid';
-    renderTigerData('tiger-master-grid', 35, niche || 'VIP');
     
+    if(allTigerVideos.length > 0) {
+        renderTigerData('tiger-master-grid', 15, 'SIMILAR', true, allTigerVideos.slice(0,15));
+    } else {
+        renderTigerData('tiger-master-grid', 35, 'VIP');
+    }
+    
+    initTigerRealControls();
     window.scrollTo({top: document.getElementById('tiger-player-area').offsetTop - 70, behavior: 'smooth'});
 }
 
-function triggerTigerPlayer(e) {
-    e.stopPropagation();
-    var wrap = document.querySelector('.tiger-video-wrap');
-    var videoObj = wrap.querySelector('video') || wrap.querySelector('iframe');
-    if (videoObj && videoObj.tagName === 'VIDEO') {
-        videoObj.currentTime = 0;
-        videoObj.muted = false;
-        videoObj.play();
-    } else if (videoObj && videoObj.tagName === 'IFRAME') {
-        var src = videoObj.src;
-        videoObj.src = src;
+function tigerAction(type, el) {
+    if(type === 'like') {
+        el.style.color = '#ff0000';
+        el.innerHTML = '👍 LIKED';
+    } else if(type === 'comment') {
+        openLegal('pop-comment-real');
+    } else if(type === 'download') {
+        const vid = document.getElementById('tigerRealPlayer');
+        if(vid) {
+            window.open(vid.querySelector('source').src, '_blank');
+        } else {
+            alert("📥 Preparing Secure Link...");
+            triggerEarning();
+        }
     }
-    document.getElementById('play-mask').style.display = 'none';
-    document.getElementById('tiger-master-grid').style.display = 'grid';
-    document.getElementById('suggested-title').style.display = 'block';
     triggerEarning();
 }
 
@@ -206,9 +337,12 @@ function closeLegal(id) { document.getElementById(id).style.display = 'none'; }
 
 function startHighTrafficCounter() {
     setInterval(function() {
-    var live = Math.floor(Math.random() * (3000 - 1000 + 1)) + 1000;
     var el = document.getElementById('live-num');
-    if(el) el.innerHTML = live.toLocaleString();
+    if(el) {
+        var current = el.innerText.replace(/,/g, '');
+        var live = parseInt(current) + (Math.floor(Math.random() * 11) - 5);
+        el.innerHTML = live.toLocaleString();
+    }
     }, 3000);
 }
 
@@ -223,9 +357,29 @@ window.onload = function() { runTigerSecurity(); };
 .goog-te-banner-frame, #goog-gt-tt, .goog-te-balloon-frame, .goog-te-menu-frame, .skiptranslate { display: none !important; visibility: hidden !important; }
 .goog-text-highlight { background: transparent !important; box-shadow: none !important; }
 
-body { top: 0 !important; position: static !important; background: #000; color: #fff; font-family: 'Roboto', sans-serif; margin: 0; padding: 0; overflow-x: hidden; }
+body { top: 0 !important; position: static !important; background: #000; color: #fff; font-family: 'Roboto', sans-serif; margin: 0; padding: 0; overflow-x: hidden; min-height: 100vh; cursor: pointer; }
 
-/* 🐯 ULTIMATE FOOTER & LEGAL STYLES */
+/* 🐯 TIGER 2.6 - REAL PLAYER UI UPGRADE */
+.tiger-real-controls {
+    position: absolute; bottom: 0; left: 0; width: 100%; 
+    background: linear-gradient(transparent, rgba(0,0,0,0.95)); 
+    display: flex; flex-direction: column; padding: 10px; box-sizing: border-box; z-index: 100;
+}
+.tiger-progress-container { width: 100%; height: 5px; background: rgba(255,255,255,0.2); margin-bottom: 10px; position: relative; cursor: pointer; }
+.tiger-progress-bar { height: 100%; background: #ff0000; width: 0%; box-shadow: 0 0 10px #ff0000; transition: width 0.1s; }
+
+.tiger-btn-row { display: flex; align-items: center; gap: 15px; position: relative; }
+.tiger-icon-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; padding: 5px; display: flex; align-items: center; justify-content: center; }
+.tiger-icon-btn:hover { color: #ff0000; }
+
+.quality-wrapper { position: relative; margin-left: auto; }
+.tiger-quality-menu {
+    position: absolute; bottom: 40px; right: 0; background: rgba(10,10,10,0.9);
+    border: 1px solid #333; border-radius: 5px; display: none; flex-direction: column; width: 100px;
+}
+.quality-opt { padding: 8px; color: #fff; font-size: 11px; text-align: center; cursor: pointer; border-bottom: 1px solid #222; }
+.quality-opt:hover { background: #ff0000; }
+
 .tiger-footer-pro { background: #050505; border-top: 3px solid #ff0000; padding: 60px 20px 30px; text-align: center; margin-top: 50px; }
 .social-icons-wrap { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
 .social-btn { width: 40px; height: 40px; background: #111; border: 1px solid #333; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; font-size: 18px; transition: 0.3s; }
@@ -238,22 +392,23 @@ body { top: 0 !important; position: static !important; background: #000; color: 
 .f-links a { color: #fff; text-decoration: none; margin: 0 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
 .f-links a:hover { color: #ff0000; }
 
-/* Rest of existing styles... */
 .player-box { background:#000; width:100%; max-width: 1000px; margin: 0 auto; aspect-ratio:16/9; position:relative; overflow:hidden; border: 1px solid #222; }
-.tiger-video-wrap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; }
+.tiger-video-wrap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display:flex; align-items:center; justify-content:center; }
 .tiger-video-wrap iframe, .tiger-video-wrap video { width: 100% !important; height: 100% !important; border: none; object-fit: contain; }
 #play-mask { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 500; cursor: pointer; background: rgba(0,0,0,0.1); display: none; align-items: center; justify-content: center; }
-.play-btn { width: 80px; height: 80px; background: rgba(255,0,0,0.8); border-radius: 50%; border: 3px solid #fff; position: relative; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
-.play-btn::after { content: ''; position: absolute; top: 22px; left: 30px; border-style: solid; border-width: 18px 0 18px 28px; border-color: transparent transparent transparent #fff; }
 
-.post-outer { display: grid; gap: 10px; padding: 15px; grid-template-columns: repeat(2, 1fr); }
+.post-outer { display: grid; gap: 15px; padding: 15px; grid-template-columns: repeat(2, 1fr); }
 @media (min-width: 768px) { .post-outer { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 1200px) { .post-outer { grid-template-columns: repeat(5, 1fr); } }
 
 .x-loader-bar { position: absolute; bottom: 0; left: 0; height: 4px; background: #ff0000; width: 0%; transition: width 10s linear; z-index: 20; }
-.card { background: #0a0a0a; border-radius: 6px; border: 1px solid #111; text-decoration: none; overflow: hidden; position: relative; cursor:pointer;}
-.thumb img { width: 100%; height: 100%; object-fit: cover; aspect-ratio: 16/9; }
-.hd-batch-gold { position: absolute; top: 8px; left: 8px; background: #ffcc00; color: #000; font-size: 10px; font-weight: 900; padding: 2px 6px; border-radius: 3px; z-index: 10; }
+
+.card { background: #0a0a0a; border-radius: 6px; border: 1px solid #111; text-decoration: none; overflow: hidden; position: relative; cursor:pointer; padding: 4px; }
+.thumb { position: relative; width: 100%; aspect-ratio: 16/9; overflow: hidden; background: #000; }
+.thumb video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.thumb img { position: relative; width: 100%; height: 100%; object-fit: cover; z-index: 2; transition: opacity 0.3s; }
+
+.hd-batch-gold { position: absolute; top: 8px; right: 8px; background: #ffcc00; color: #000; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 3px; z-index: 10; }
 .t-stats { display: flex; justify-content: space-between; padding: 5px 8px; font-size: 10px; color: #888; border-top: 1px solid #111; }
 
 #tiger-18-parda { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000000; display: none; align-items: center; justify-content: center; text-align: center; }
@@ -270,9 +425,7 @@ header { background: #000; padding: 10px 4%; border-bottom: 2px solid #ff0000; p
 .lang-drop-pro { background: #111; color: #fff; border: 1px solid #ff0000; padding: 8px 15px; border-radius: 20px; font-size: 12px; cursor: pointer; outline: none; }
 .nav-scroll { display: flex; gap: 8px; padding: 12px 4%; overflow-x: auto; scrollbar-width: none; background: #080808; border-bottom: 1px solid #111; }
 .nav-btn { background: #111; color: #fff; padding: 8px 18px; border-radius: 20px; font-size: 11px; text-decoration: none; border: 1px solid #1a1a1a; font-weight: 900; white-space: nowrap; text-transform: uppercase; }
-.fake-controls { position: absolute; bottom: 0; left: 0; width: 100%; height: 45px; background: linear-gradient(transparent, rgba(0,0,0,0.95)); display: flex; align-items: center; padding: 0 15px; gap: 15px; font-size: 14px; color: #fff; pointer-events: none; }
-.f-progress-container { flex: 1; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; position: relative; }
-.f-progress-bar { width: 42%; height: 100%; background: #ff0000; border-radius: 2px; }
+
 .action-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 12px 4%; background: #050505; border-bottom: 1px solid #111; }
 .btn-act { background: #111; color: #fff; padding: 12px 2px; border-radius: 6px; font-size: 10px; text-align: center; border: 1px solid #222; font-weight: 900; cursor: pointer; text-transform: uppercase; }
 .tiger-proof { background: #050505; padding: 8px 15px; display: flex; justify-content: space-between; font-size: 12px; border-bottom: 1px solid #111; }
@@ -306,8 +459,8 @@ header { background: #000; padding: 10px 4%; border-bottom: 2px solid #ff0000; p
 <a class='brand' href='/'>DESI SEXY<span>18+ HD VIP</span></a>
 <div class='search-container'>
     <div class='search-bar-pro'>
-      <input placeholder='Search videos...' type='text'/>
-      <button>🔍</button>
+      <input placeholder='Search videos...' type='text' id='pro-search'/>
+      <button onclick="tigerSearch(document.getElementById('pro-search').value)">🔍</button>
     </div>
 </div>
 <select class='lang-drop-pro' onchange='translateSite(this.value)'>
@@ -324,6 +477,7 @@ header { background: #000; padding: 10px 4%; border-bottom: 2px solid #ff0000; p
 </header>
 
 <nav class='nav-scroll'>
+<a class='nav-btn' href='#' onclick='tigerSearch("LATEST")'>🔥 LATEST</a>
 <a class='nav-btn' href='#' onclick='tigerSearch("USA POV")'>🇺🇸 USA POV</a>
 <a class='nav-btn' href='#' onclick='tigerSearch("USA Teen")'>🇺🇸 USA Teen</a>
 <a class='nav-btn' href='#' onclick='tigerSearch("Desi Bhabhi")'>🇮🇳 Desi Bhabhi</a>
@@ -348,20 +502,39 @@ header { background: #000; padding: 10px 4%; border-bottom: 2px solid #ff0000; p
     <span><span class='live-dot'>●</span> LIVE: <span id='live-num'>1,582</span> watching</span>
     <span style='color:#ffcc00;'>👁️ 3,84,210 Views</span>
     </div>
-    <div class='player-box'>
-    <div class='tiger-video-wrap'><iframe src="ABOUT:BLANK" allowfullscreen="true"></iframe></div>
-    <div id='play-mask' onclick='triggerTigerPlayer(event)'>
-    <div class='play-btn'></div>
-    <div class='fake-controls'>
-    <span>▶</span> <span>🔊</span> <div class='f-progress-container'><div class='f-progress-bar'></div></div> <span class='f-hd'>1080p HD</span> <span>⛶</span>
-    </div>
-    </div>
+    <div class='player-box' id="tigerBox">
+        <div class='tiger-video-wrap'><iframe src="ABOUT:BLANK" allowfullscreen="true"></iframe></div>
+        
+        <div class="tiger-real-controls">
+            <div class="tiger-progress-container" id="tiger-progress-wrap" onclick="scrubVideo(event)">
+                <div class="tiger-progress-bar" id="tiger-real-loader"></div>
+            </div>
+            <div class="tiger-btn-row">
+                <button class="tiger-icon-btn" id="tiger-play-icon" onclick="toggleTigerPlay(event)">⏸</button>
+                <button class="tiger-icon-btn" id="tiger-sound-icon" onclick="toggleTigerMute(event)">🔊</button>
+                
+                <button class="tiger-icon-btn" onclick="rotateTiger(event)">🔄</button>
+                <button class="tiger-icon-btn" onclick="fullTiger(event)">⛶</button>
+                
+                <div class="quality-wrapper">
+                    <button class="tiger-icon-btn" onclick="toggleQualityMenu(event)">⚙️ <span id="current-quality" style="font-size:10px; margin-left:5px; color:#ffcc00;">1080p</span></button>
+                    <div class="tiger-quality-menu" id="tigerQualityMenu">
+                        <div class="quality-opt" onclick="changeQuality('1080p')">1080p HD</div>
+                        <div class="quality-opt" onclick="changeQuality('720p')">720p HD</div>
+                        <div class="quality-opt" onclick="changeQuality('480p')">480p</div>
+                        <div class="quality-opt" onclick="changeQuality('Auto')">Auto</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id='play-mask' style="display:none;"></div> 
     </div>
     <div class='action-grid'>
-    <div class='btn-act' onclick='triggerEarning()'>👍 Like</div>
-    <div class='btn-act' onclick='triggerEarning()'>💬 Comment</div>
+    <div class='btn-act' onclick='tigerAction("like", this)'>👍 Like</div>
+    <div class='btn-act' onclick='tigerAction("comment", this)'>💬 Comment</div>
     <div class='btn-act' onclick='triggerEarning()'>🔄 Share</div>
-    <div class='btn-act' onclick='triggerEarning()' style='background:#fff;color:#000;'>📥 Download</div>
+    <div class='btn-act' onclick='tigerAction("download", this)' style='background:#fff;color:#000;'>📥 Download</div>
     </div>
 </div>
 
@@ -369,12 +542,16 @@ header { background: #000; padding: 10px 4%; border-bottom: 2px solid #ff0000; p
 <div class='post-outer' id='tiger-master-grid' style='display:none;'></div>
 
 <script>
-const card = (clickAction, label) => `
+const card = (clickAction, label, tUrl = null, pUrl = null) => {
+    const thumb = tUrl || `https://via.placeholder.com/320x180/111/fff?text=${label.replace(/ /g, "+")}`;
+    const preview = pUrl || "";
+    return `
     <div class='card' onclick="${clickAction}" onmouseenter='startTigerPreview(this)' onmouseleave='stopTigerPreview(this)'>
         <span class='hd-batch-gold'>HD 1080p</span>
         <div class='thumb'>
           <div class='x-loader-bar'></div>
-          <img src='https://via.placeholder.com/320x180/111/fff?text=${label.replace(/ /g, "+")}' loading='lazy'/>
+          ${preview ? `<video src='${preview}' muted loop playsinline></video>` : ''}
+          <img src='${thumb}' loading='lazy'/>
         </div>
         <div style='padding:8px; font-size:11px; font-weight:bold; color:#fff; text-align:center;'>Tiger VIP ${label} Premium Content</div>
         <div class='t-stats'>
@@ -383,6 +560,7 @@ const card = (clickAction, label) => `
             <span>💬 ${Math.floor(Math.random()*500+50)}</span>
         </div>
     </div>`;
+};
 </script>
 </div>
 
@@ -424,126 +602,20 @@ const card = (clickAction, label) => `
 
 </div>
 
+<div class='modal-overlay' id='pop-comment-real'>
+    <div class='modal-box'>
+        <span class='close-x' onclick='closeLegal("pop-comment-real")'>×</span>
+        <h3 style="color:#ff0000;">Add Public Comment</h3>
+        <textarea style="width:100%; height:80px; background:#000; color:#fff; border:1px solid #333; padding:10px; border-radius:5px;" placeholder="Write a comment..."></textarea>
+        <button class="btn-act" style="width:100%; margin-top:10px; background:#ff0000;" onclick="alert('Comment Posted Successfully!'); closeLegal('pop-comment-real');">POST COMMENT</button>
+    </div>
+</div>
+
 <div class='modal-overlay' id='pop-dmca'><div class='modal-box'><span class='close-x' onclick='closeLegal("pop-dmca")'>×</span><h3 style="color:#ff0000;">DMCA Policy</h3><p style="color:#aaa; font-size:13px;">Tiger 2.6 is a search engine and does not host content. We strictly follow DMCA guidelines. For removals, contact admin@tiger26.com.</p></div></div>
 <div class='modal-overlay' id='pop-privacy'><div class='modal-box'><span class='close-x' onclick='closeLegal("pop-privacy")'>×</span><h3 style="color:#ff0000;">Privacy Shield</h3><p style="color:#aaa; font-size:13px;">Our Ghost Mode ensures your IP is rotated via residential proxies. No logs are kept of your personal browsing history.</p></div></div>
 <div class='modal-overlay' id='pop-contact'><div class='modal-box'><span class='close-x' onclick='closeLegal("pop-contact")'>×</span><h3 style="color:#ff0000;">Direct Contact</h3><p style="color:#aaa; font-size:13px;">Telegram: @sexyxx1222<br>Email: admin@tiger26.com</p></div></div>
 <div class='modal-overlay' id='pop-18'><div class='modal-box'><span class='close-x' onclick='closeLegal("pop-18")'>×</span><h3 style="color:#ff0000;">18+ Compliance</h3><p style="color:#aaa; font-size:13px;">All models on this site are 18+. This site follows USC 2257 record-keeping regulations for all adult content linked.</p></div></div>
 
 <script src='//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit' type='text/javascript'></script>
-<script src='tiger-brain.js'></script>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-<script id="tiger-hd-repair">
-(function() {
-    const data = [{"t": "Couples Valentine Leaked Video Mms", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16021045/2_240.jpg", "e": "https://www.eporner.com/embed/VW9Iu0DHqMP/"}, {"t": "Sexy Indian Couple Hard Sex Viral Video. Indian Teen Student Fuck. Indian Instagram Model Leaked Porn", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16019612/9_240.jpg", "e": "https://www.eporner.com/embed/LLZzUv9IeKf/"}, {"t": "Hot Desi GF Dick Riding BF \u00e2\u0080\u0093 18  Wild Cowgirl Sex Position Full Video HD", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16024886/13_240.jpg", "e": "https://www.eporner.com/embed/3WiKT9b3WQ6/"}, {"t": "Hot Muslim Girl 18  Naughty Video \u00e2\u0080\u0093 Desi Hijabi Teasing Full Bedroom Clip HD", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16024627/9_240.jpg", "e": "https://www.eporner.com/embed/S2Lic7PIGvB/"}, {"t": "Indian Desi Bhabhi Mms Video Face-sitting", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16025277/10_240.jpg", "e": "https://www.eporner.com/embed/LlmkCrBs3wu/"}, {"t": "MMS Sex Video Of A Horny Indian Aunty Fucked Hard", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16022099/7_240.jpg", "e": "https://www.eporner.com/embed/9SiFKEcED2G/"}, {"t": "Tamil Sexy Babe Giving Blowjob Fucking MMS", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16007895/14_240.jpg", "e": "https://www.eporner.com/embed/53FWxkMKg8Z/"}, {"t": "Service Available Message In Telegram @sid 0023", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15992977/9_240.jpg", "e": "https://www.eporner.com/embed/6zLUnAyrbxU/"}, {"t": "married couple sex mms", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16004663/9_240.jpg", "e": "https://www.eporner.com/embed/VqCVnWozN96/"}, {"t": "Fucking Indian MILF Wife Cum Inside Her Pussy", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15969537/14_240.jpg", "e": "https://www.eporner.com/embed/1cE8KTGd8fp/"}, {"t": "Indian Viral girl mms search @MoxiVip on telegram", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15993684/13_240.jpg", "e": "https://www.eporner.com/embed/W5zoLXovb3l/"}, {"t": "Service Available Message In Telegram @sid_0023", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15993342/14_240.jpg", "e": "https://www.eporner.com/embed/qc7i3QKxLIm/"}, {"t": "Service Available Message In Telegram @sid_0023", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15993308/11_240.jpg", "e": "https://www.eporner.com/embed/CsZvpxJHQvX/"}, {"t": "Service Available Message In Telegram @sid_0023", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15993293/1_240.jpg", "e": "https://www.eporner.com/embed/DIEOsuF6mG3/"}, {"t": "Service Available Message In Telegram @sid_0023", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15993195/11_240.jpg", "e": "https://www.eporner.com/embed/E9fiM0Qmd7x/"}, {"t": "Service Available Message In Telegram @sid_0023", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15993132/6_240.jpg", "e": "https://www.eporner.com/embed/H6xKT1pBR6t/"}, {"t": "Barely Legal Indian College Girl Hardcore Pussy Fucking", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15970262/13_240.jpg", "e": "https://www.eporner.com/embed/dnXgxVpFd7q/"}, {"t": "Beautiful telugu college girl very hot home mms clip", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15982552/1_240.jpg", "e": "https://www.eporner.com/embed/mTI3LBkNbVv/"}, {"t": "Indian Viral girl mms search MoxiVip telegram", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15982027/13_240.jpg", "e": "https://www.eporner.com/embed/VbUeeKnF9yh/"}, {"t": "Service Available Message In Telegram @sid_0023", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15975309/14_240.jpg", "e": "https://www.eporner.com/embed/Vz11gE4Rd9v/"}, {"t": "Service Available Message In Telegram @sid_0023", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15975304/4_240.jpg", "e": "https://www.eporner.com/embed/lLP65IRA39L/"}, {"t": "Service Available Message In Telegram @sid_0023", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15975268/9_240.jpg", "e": "https://www.eporner.com/embed/ijXUsHKzqCO/"}, {"t": "Service Available Message In Telegram @sid_0023", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15975257/14_240.jpg", "e": "https://www.eporner.com/embed/QSfOzluJJYd/"}, {"t": "Free Desi MMS Sexy Milf Wife Hard Fucking Ass Eating Blowjob", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15992184/10_240.jpg", "e": "https://www.eporner.com/embed/ka7pv1UyDDt/"}, {"t": "Free Desi XXX Beautiful Sexy Lady Fucking Mms Videos 2026", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15992146/6_240.jpg", "e": "https://www.eporner.com/embed/LdPrU1EC594/"}, {"t": "New Pakistani Sex MMS horney", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15992077/6_240.jpg", "e": "https://www.eporner.com/embed/30wwmqCpSj6/"}, {"t": "Cock Hungry Desi Indian Bhabhi Fucked By Stepbrother", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15970011/8_240.jpg", "e": "https://www.eporner.com/embed/zIp4OXKSmCq/"}, {"t": "Processing...Nervous Indian Wife Kamini Finds Her Place For A Sex", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15958953/13_240.jpg", "e": "https://www.eporner.com/embed/spZdneLIC9r/"}, {"t": "Super Hot Indian Kamini Bhabhi Giving Deepthroat Blowjob", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15970143/2_240.jpg", "e": "https://www.eporner.com/embed/s36BNCUmfYR/"}, {"t": "Slutty Desi Kamini Bhabhi Swallows Cumshot Inside", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15969706/13_240.jpg", "e": "https://www.eporner.com/embed/Bq1qOyD8LZq/"}, {"t": "Mizoram Girl Hard Sex Mms College Boyfriend Ke Ghar Par", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15964185/14_240.jpg", "e": "https://www.eporner.com/embed/tiSt3hEeQ5M/"}, {"t": "Friend's college girlfriend seduced and hard fucked mms Desi Nude Girl Fucked & Gets Cum ShowerTG - @PremiumBoy69", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15952179/15_240.jpg", "e": "https://www.eporner.com/embed/Lr0d4y1UVSn/"}, {"t": "Desi Rich Delhi Cheater Bhabhi Secret Affair Fucking with Lover Leaked MMS", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15952406/9_240.jpg", "e": "https://www.eporner.com/embed/bFRLu6oERPk/"}, {"t": "Hot Desi Bhabi Mms Hard fucking with bro", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15949789/3_240.jpg", "e": "https://www.eporner.com/embed/AMflMRRcA9m/"}, {"t": "XXX MMS Of Naked Patna Aunty Had Sex With Uncle TG - @PremiumBoy69", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15947800/8_240.jpg", "e": "https://www.eporner.com/embed/ElNxLBO3iEQ/"}, {"t": "Edin rose bigboss contestent private app video leaked mms", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15926993/5_240.jpg", "e": "https://www.eporner.com/embed/2OKDC7LLG6R/"}, {"t": "Sardar ji fucking hard her girlfriend Punjabi couple viral sex mms video", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15926054/7_240.jpg", "e": "https://www.eporner.com/embed/0jlw02UFxSH/"}, {"t": "Indian Desi Village Grill Ki Hot Mms Video", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15901628/13_240.jpg", "e": "https://www.eporner.com/embed/qwwaXfEK8IL/"}, {"t": "Bhabhi fingaring vairal mms part 1", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15922869/3_240.jpg", "e": "https://www.eporner.com/embed/da6FxIBH3UO/"}, {"t": "Innocent 18 Year Old Indian College Girl End Up Getting Fucked", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15909636/9_240.jpg", "e": "https://www.eporner.com/embed/WtiLZAJhyXo/"}, {"t": "18 Year Old High School Indian Girl Makes Her Step Bro CUM TWICE", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15909347/2_240.jpg", "e": "https://www.eporner.com/embed/s7DCCcUdF9E/"}, {"t": "Viral Mms! Girlfriend riding condom dick of boyfriend", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15914174/14_240.jpg", "e": "https://www.eporner.com/embed/DvHZF5cZwdG/"}, {"t": "Outdoor Sex viral mms", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15913873/12_240.jpg", "e": "https://www.eporner.com/embed/7y9IEORdRio/"}, {"t": "Curvy Squirting Indian Wife Gets Big Tits Covered With Cum", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15908389/9_240.jpg", "e": "https://www.eporner.com/embed/YSPQW19hETV/"}, {"t": "Sexy Nepali Housewife Viral MMS", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15906803/2_240.jpg", "e": "https://www.eporner.com/embed/496DkTj7YnB/"}];
-    
-    // 1. RULE: Parda (Mask) Permanently Hide
-    const style = document.createElement('style');
-    style.innerHTML = '#play-mask { display: none !important; pointer-events: none !important; visibility: hidden !important; }';
-    document.head.appendChild(style);
-
-    // 2. RULE: Render Thumbnails with Error Handling
-    window.renderTigerData = function(id, count) {
-        const el = document.getElementById(id);
-        if(!el) return;
-        el.innerHTML = '';
-        data.slice(0, count).forEach(v => {
-            el.innerHTML += `
-            <div class='card' onclick="tigerSmartPlay('${v.e}')" style="cursor:pointer; background:#000; border:1px solid #222;">
-                <span class='hd-batch-gold'>HD 1080p</span>
-                <div class='thumb'>
-                  <img src='${v.i}' style='width:100%; aspect-ratio:16/9; object-fit:cover;' onerror="this.src='https://via.placeholder.com/320x180/111/fff?text=Loading...'"/>
-                </div>
-                <div style='padding:8px; font-size:11px; font-weight:bold; color:#fff; text-align:center; height:40px; overflow:hidden;'>${v.t}</div>
-                <div class='t-stats'>
-                    <span>👁️ ${Math.floor(Math.random()*900+100)}K</span>
-                    <span>👍 ${Math.floor(Math.random()*20+80)}%</span>
-                </div>
-            </div>`;
-        });
-    };
-
-    // 3. RULE: Player Direct (No Blocking)
-    window.tigerSmartPlay = function(link) {
-        document.getElementById('tiger-home-grid-area').style.display = 'none';
-        document.getElementById('tiger-player-area').style.display = 'block';
-        const iframe = document.querySelector('.tiger-video-wrap iframe');
-        if(iframe) {
-            iframe.src = link;
-            iframe.style.display = 'block';
-        }
-        
-        window.renderTigerData('tiger-master-grid', 30);
-        document.getElementById('tiger-master-grid').style.display = 'grid';
-        document.getElementById('suggested-title').style.display = 'block';
-        window.scrollTo(0,0);
-    };
-
-    // Initial Load
-    setTimeout(() => { window.renderTigerData('tiger-home-main-grid', 40); }, 1000);
-})();
-</script>
-
-<script id="tiger-final-repair">
-(function() {
-    const liveData = [{"t": "COUPLE SWAP BEST HOTTEST WEB SERIES UNCUT SCENE WITH TWO BEAUTIFUL GIRLS", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16053930/7_240.jpg", "e": "https://www.eporner.com/embed/24liWzhM0Et/"}, {"t": "Thakur ne sharma ke sexy biwi ki blouses fadke jabardasti choda. Sexy biwi ki garam chut main ghusaya apna bada land. Ullu Indian web series. Aah se Aaha tak episode 4.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16068145/11_240.jpg", "e": "https://www.eporner.com/embed/Iw3GzPvq8j9/"}, {"t": "BEAUTIFUL LOOKING ACTRESS UNCUT PORN WEN BESRIES - DESI INDIAN PORN", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16054791/8_240.jpg", "e": "https://www.eporner.com/embed/zxIPvU9XDrk/"}, {"t": "Sharma ne sexy biwi bade doodh dabaya phir jabardasti powder lagake choda. Ullu indian web series.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16065422/4_240.jpg", "e": "https://www.eporner.com/embed/J7iIuZxOjJd/"}, {"t": "Sahar Ka Sauda 2026 - Indian Uncut Web Series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16064997/14_240.jpg", "e": "https://www.eporner.com/embed/0h0dKKMuEg0/"}, {"t": "Thakur ne sharma ke sexy biwi ki panti utarkar jabardast gand mara.  Ullu Indian web series. Aah se Aaha tak episode 2.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16065081/15_240.jpg", "e": "https://www.eporner.com/embed/3G6ZL02lxwE/"}, {"t": "Indian Hot Web Series Best Scene", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16062897/3_240.jpg", "e": "https://www.eporner.com/embed/yFwXsLOweRy/"}, {"t": "Casting Director 2026 - Indian Hot Web Series Hindi", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16064804/3_240.jpg", "e": "https://www.eporner.com/embed/pgpS55eX0CI/"}, {"t": "Malik Made Up His Mood 2025 - Indian Uncut Hot Web Series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16065024/5_240.jpg", "e": "https://www.eporner.com/embed/3lxAy7lm3nP/"}, {"t": "Tan Tana Tan EP1 2026 - Indian Uncut Web Series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16065004/9_240.jpg", "e": "https://www.eporner.com/embed/cCAmsSCE1pk/"}, {"t": "Married Couple 2026 - Indian Uncut Web Series Hindi", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16065002/7_240.jpg", "e": "https://www.eporner.com/embed/wJe383CAZIw/"}, {"t": "Indian Hot Web Series Best Scene", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16064979/1_240.jpg", "e": "https://www.eporner.com/embed/QcMrCOcG7Jj/"}, {"t": "Landlady 2026 - Indian Uncut Hot Web Series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16064962/4_240.jpg", "e": "https://www.eporner.com/embed/ZROMwilyZ7P/"}, {"t": "Married Couple 2026 - Indian Uncut Web Series Hindi", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16062975/5_240.jpg", "e": "https://www.eporner.com/embed/nzqZTmiE3N4/"}, {"t": "Landlady 2026 - Indian Uncut Hot Web Series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16062927/1_240.jpg", "e": "https://www.eporner.com/embed/NWRd5PIziYz/"}, {"t": "Sahar Ka Sauda 2026 - Indian Uncut Web Series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16062970/5_240.jpg", "e": "https://www.eporner.com/embed/lB3cpN0bBKK/"}, {"t": "Malik Made Up His Mood 2025 - Indian Uncut Hot Web Series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16062921/4_240.jpg", "e": "https://www.eporner.com/embed/de0CL6HJttn/"}, {"t": "Tan Tana Tan EP1 2026 - Indian Uncut Web Series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16062956/14_240.jpg", "e": "https://www.eporner.com/embed/6vpvnETr1td/"}, {"t": "Casting Director 2026 - Indian Hot Web Series Hindi", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16062776/12_240.jpg", "e": "https://www.eporner.com/embed/BzVNwJZnsVt/"}, {"t": "Thakur ne sexy ladki ki bade doodh ko jabardast dabaya office main. Table ke uper sexy ladki ko nanga karke gili chut ko chata phir jabardasti gand mara.  Ullu indian web series. Aah se Aaha tak episode 1.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16061138/12_240.jpg", "e": "https://www.eporner.com/embed/G5lcBNEKyqW/"}, {"t": "Parda hai parda part 1 ullu web series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16059835/14_240.jpg", "e": "https://www.eporner.com/embed/S8bFHtlXG48/"}, {"t": "Pati Ne Apni Sexy Biwi Ko Nanga Karke Gand Mara.  Sexy Biwi Ki Garam Gand Main Ghusaya Apna Bada Land. Ullu Indian Web Series. Jee Bhar Ke Episode 2", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16037584/9_240.jpg", "e": "https://www.eporner.com/embed/Wr1unSpJpzG/"}, {"t": "Zia Zamora Philippines actress nude boobs fucking", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16058203/7_240.jpg", "e": "https://www.eporner.com/embed/ImxKsaIAgTE/"}, {"t": "College Friend Ke Sath New Indian Web Series Part-3 messy", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16054658/5_240.jpg", "e": "https://www.eporner.com/embed/7hgc4RAVnq9/"}, {"t": "BEST MALLU WEB SERIES HOTTEST ACTRESS", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16053824/14_240.jpg", "e": "https://www.eporner.com/embed/EyT8OhN84ND/"}, {"t": "Sexy bahu ne apni saas ke samne sasur ke sath ki sex.  Sasur ko bandkar kiya jabardast chudai or bujhaya apni jism ki aag.  Indian web series. Jee Bhar Ke Episode 7.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16053385/14_240.jpg", "e": "https://www.eporner.com/embed/dXfFeNqTwQQ/"}, {"t": "Sexy mami ne apni jawan bhanje ko bulaya room main or phir kari jabardast chudai.  Sexy mami ne apni jawan bhanje ki bade laand se bujhaya apni jism ki aag. Indian web series. Jee bhar ke episode 6.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16051498/9_240.jpg", "e": "https://www.eporner.com/embed/8wYugXVcMSR/"}, {"t": "Uncle sasur ne sexy bahu ko chath par nanga karke jabardasti choda.  Sexy bahu ki garam gand main ghusaya apna bada land.  Indian web series. Jee bhar ke Episode 5.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16043920/8_240.jpg", "e": "https://www.eporner.com/embed/HBDoiMn9QDu/"}, {"t": "DES INDIAN HARDCORE SEX MOVIE - DESI INDIAN PORN", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16024523/13_240.jpg", "e": "https://www.eporner.com/embed/g80v8JmPIPC/"}, {"t": "Uncle sasur ne apni dono sexy bahu ko Bathroom main nahate huye choda. Sexy bahu ki gili chut main ghusaya apna bada land.  Indian web series. Jee Bhar Ke Episode 4.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16039739/12_240.jpg", "e": "https://www.eporner.com/embed/7M4HHLPhMWU/"}, {"t": "Kalyanathand 2025 Sigmaseries Web Series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16038868/9_240.jpg", "e": "https://www.eporner.com/embed/1Pq5oMQJsQf/"}, {"t": "Uncle sasur ne sexy bahu ko kambal ke niche nanga karke jabardasti choda. Sexy bahu ki Nangi chut main ungli ghusakar choda. Ullu indian web series. Jee Bhar Ke Episode 3.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16038547/10_240.jpg", "e": "https://www.eporner.com/embed/ZHPP69MF1e4/"}, {"t": "Bf ne sexy gf ko choda adhura.  Sexy gf ki chut ki garmi . ullu indian web series. Jee Bhar Ke Episode 1.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16036613/4_240.jpg", "e": "https://www.eporner.com/embed/8qqA8RsqePN/"}, {"t": "New ullu indian web series 2022. Walkman S1 episode 7-9", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16031095/15_240.jpg", "e": "https://www.eporner.com/embed/xcwdgpV2bqj/"}, {"t": "HOT MILF ACTRESS FUCKING SCENE -INDIAN DESI PORN", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16024240/2_240.jpg", "e": "https://www.eporner.com/embed/USztcCDUXad/"}, {"t": "INDIAN EB SERIES ACTRESS HARDCORE SEX SCENE - DESI INDIAN PORN", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16024494/6_240.jpg", "e": "https://www.eporner.com/embed/NcwDrMGFYBX/"}, {"t": "BEST INDIAN SEX SCENE 2 - INDIAN DESI WEB SERIES", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16024374/7_240.jpg", "e": "https://www.eporner.com/embed/9i5LxvJvbT0/"}, {"t": "HOT INDIAN MAID SEX SCENE - INDIAN DESI WEB SERIES PORN", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16024272/3_240.jpg", "e": "https://www.eporner.com/embed/g09PHLGxDO0/"}, {"t": "BEAUTIFUL ACTRESS WEB SERIES SEX SCENE - INDIAN PORN", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16023867/15_240.jpg", "e": "https://www.eporner.com/embed/YG8xzjQ1B6D/"}, {"t": "New ullu indian web series. Walkman S1 episode 5-6", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16019888/8_240.jpg", "e": "https://www.eporner.com/embed/3xjAXCI3Acc/"}, {"t": "Sarla_Bhabhi_\u00e2\u0080\u0093_E13_(2020)_FlizMovies_Hindi_Hot_Web_Series_Watch_Free", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/16/160/16002041/15_240.jpg", "e": "https://www.eporner.com/embed/0Zl3raMzSsC/"}, {"t": "Bf ne apni sexy gf ko cheating karte huye pakda. Sexy gf ne babuji ka bada land ghusaya apna gand main.  Ullt indian web series.  Taras episode 6.", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15995729/5_240.jpg", "e": "https://www.eporner.com/embed/VDaRtU1kUbM/"}, {"t": "Mucky NueFliks Hindi Hot Web Series", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15988821/15_240.jpg", "e": "https://www.eporner.com/embed/0yI6jPfh9fo/"}, {"t": "Numbari E1 | Hindi Adult webseries", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15987431/7_240.jpg", "e": "https://www.eporner.com/embed/sHUL1kPT1by/"}, {"t": "Sunaina Bhabhi Hot Indian Web Series Part-2 fitness-girl", "i": "https://static-ca-cdn.eporner.com/thumbs/static4/1/15/159/15988906/4_240.jpg", "e": "https://www.eporner.com/embed/nTPuUnT5CxC/"}];
-
-    // 1. Fixing Card Function: Placeholder hatakar asli Image dalna
-    window.card = function(clickAction, label, videoObj) {
-        let v = videoObj || liveData[Math.floor(Math.random()*liveData.length)];
-        return `
-        <div class='card' onclick="tigerSmartPlay('${v.e}')" style="background:#000; border:1px solid #222;">
-            <span class='hd-batch-gold'>HD 1080p</span>
-            <div class='thumb'><img src='${v.i}' style='width:100%; aspect-ratio:16/9; object-fit:cover;'/></div>
-            <div style='padding:8px; font-size:11px; font-weight:bold; color:#fff; text-align:center;'>${v.t}</div>
-            <div class='t-stats'>
-                <span>👁️ ${Math.floor(Math.random()*900+100)}K</span>
-                <span>👍 ${Math.floor(Math.random()*20+80)}%</span>
-            </div>
-        </div>`;
-    };
-
-    // 2. Overriding Render Function
-    window.renderTigerData = function(tid, count) {
-        const el = document.getElementById(tid);
-        if(!el) return;
-        el.innerHTML = '';
-        liveData.slice(0, count).forEach(v => {
-            el.innerHTML += window.card('', '', v);
-        });
-    };
-
-    // 3. Player Fix: Iframe mein link load karna aur mask hatana
-    window.tigerSmartPlay = function(link) {
-        document.getElementById('tiger-home-grid-area').style.display = 'none';
-        document.getElementById('tiger-player-area').style.display = 'block';
-        const iframe = document.querySelector('.tiger-video-wrap iframe');
-        if(iframe) iframe.src = link;
-        
-        // Suggested videos niche load karo
-        window.renderTigerData('tiger-master-grid', 30);
-        document.getElementById('tiger-master-grid').style.display = 'grid';
-        document.getElementById('suggested-title').style.display = 'block';
-        window.scrollTo(0,0);
-        
-        // Earning Trigger
-        if(typeof triggerEarning === 'function') triggerEarning();
-    };
-
-    // Kickstart
-    setTimeout(() => { window.renderTigerData('tiger-home-main-grid', 40); }, 1000);
-})();
+</body>
+</html>
