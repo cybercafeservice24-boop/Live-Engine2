@@ -144,11 +144,16 @@ function initTigerRealControls() {
         e.stopPropagation();
         tigerRotate = (tigerRotate + 90) % 360;
         v.style.transform = `rotate(${tigerRotate}deg)`;
+        
+        // Perfect Rotation Fit
         if(tigerRotate === 90 || tigerRotate === 270) {
-            v.style.width = v.parentElement.offsetHeight + "px";
+            v.style.width = "auto";
+            v.style.height = "100%";
             v.style.objectFit = "contain";
         } else {
             v.style.width = "100%";
+            v.style.height = "100%";
+            v.style.objectFit = "contain";
         }
     };
 
@@ -378,21 +383,23 @@ window.onload = function() { runTigerSecurity(); };
 
 body { top: 0 !important; position: static !important; background: #000; color: #fff; font-family: 'Roboto', sans-serif; margin: 0; padding: 0; overflow-x: hidden; min-height: 100vh; cursor: pointer; }
 
-/* 🐯 NEW: CENTER PLAY BUTTON PULSE */
+/* 🐯 NEW: CENTER PLAY BUTTON PULSE - PERFECTLY COMPACT */
 @keyframes tigerPulse {
     0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); transform: translate(-50%, -50%) scale(1); }
-    70% { box-shadow: 0 0 0 20px rgba(255, 0, 0, 0); transform: translate(-50%, -50%) scale(1.1); }
+    70% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); transform: translate(-50%, -50%) scale(1.05); }
     100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); transform: translate(-50%, -50%) scale(1); }
 }
 
 #tiger-big-play {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 85px; height: 85px; background: rgba(255, 0, 0, 0.85);
+    width: 55px; height: 55px; /* Size Chhota kiya gaya */
+    background: rgba(255, 0, 0, 0.9);
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
-    z-index: 501; cursor: pointer; transition: 0.4s;
-    box-shadow: 0 0 30px #ff0000; border: 3px solid #fff;
+    z-index: 501; cursor: pointer; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 0 20px #ff0000; border: 2px solid #fff;
     animation: tigerPulse 2s infinite;
 }
+#tiger-big-play svg { width: 25px; height: 25px; margin-left: 3px; }
 
 /* 🐯 TIGER 2.6 - REAL PLAYER UI UPGRADE */
 .tiger-real-controls {
@@ -415,6 +422,39 @@ body { top: 0 !important; position: static !important; background: #000; color: 
 .quality-opt { padding: 8px; color: #fff; font-size: 11px; text-align: center; cursor: pointer; border-bottom: 1px solid #222; }
 .quality-opt:hover { background: #ff0000; }
 
+.player-box { 
+    background:#000; width:100%; 
+    max-width: 1050px; /* 2 Points bada kiya gaya */
+    margin: 0 auto; aspect-ratio:16/9; position:relative; overflow:hidden; border: 1px solid #222; 
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+.tiger-video-wrap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display:flex; align-items:center; justify-content:center; }
+.tiger-video-wrap video { transition: transform 0.4s ease-in-out; }
+
+/* 🐯 HOME PAGE BOXES - 2 POINTS BIG & PREMIUM */
+.post-outer { display: grid; gap: 20px; padding: 20px 4%; grid-template-columns: repeat(2, 1fr); }
+@media (min-width: 768px) { .post-outer { grid-template-columns: repeat(3, 1fr); } }
+@media (min-width: 1200px) { .post-outer { grid-template-columns: repeat(5, 1fr); } }
+
+.card { 
+    background: #0d0d0d; border-radius: 8px; border: 1px solid #1a1a1a; 
+    text-decoration: none; overflow: hidden; position: relative; cursor:pointer; 
+    padding: 0; transition: transform 0.3s, box-shadow 0.3s;
+}
+.card:hover { transform: translateY(-5px); border-color: #ff0000; box-shadow: 0 5px 15px rgba(255, 0, 0, 0.3); }
+
+.thumb { position: relative; width: 100%; aspect-ratio: 16/9; overflow: hidden; background: #000; }
+.thumb video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
+.thumb img { position: relative; width: 100%; height: 100%; object-fit: cover; z-index: 2; transition: opacity 0.3s; }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #tiger-big-play { width: 48px; height: 48px; }
+    #tiger-big-play svg { width: 20px; height: 20px; }
+    .player-box { max-width: 100%; border-radius: 0; }
+    .post-outer { gap: 10px; padding: 10px; }
+}
+
 .tiger-footer-pro { background: #050505; border-top: 3px solid #ff0000; padding: 60px 20px 30px; text-align: center; margin-top: 50px; }
 .social-icons-wrap { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
 .social-btn { width: 40px; height: 40px; background: #111; border: 1px solid #333; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; font-size: 18px; transition: 0.3s; }
@@ -427,24 +467,10 @@ body { top: 0 !important; position: static !important; background: #000; color: 
 .f-links a { color: #fff; text-decoration: none; margin: 0 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
 .f-links a:hover { color: #ff0000; }
 
-.player-box { background:#000; width:100%; max-width: 1000px; margin: 0 auto; aspect-ratio:16/9; position:relative; overflow:hidden; border: 1px solid #222; }
-.tiger-video-wrap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display:flex; align-items:center; justify-content:center; }
-.tiger-video-wrap iframe, .tiger-video-wrap video { width: 100% !important; height: 100% !important; border: none; object-fit: contain; }
 #play-mask { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 500; cursor: pointer; background: rgba(0,0,0,0.1); display: none; align-items: center; justify-content: center; }
-
-.post-outer { display: grid; gap: 15px; padding: 15px; grid-template-columns: repeat(2, 1fr); }
-@media (min-width: 768px) { .post-outer { grid-template-columns: repeat(3, 1fr); } }
-@media (min-width: 1200px) { .post-outer { grid-template-columns: repeat(5, 1fr); } }
-
 .x-loader-bar { position: absolute; bottom: 0; left: 0; height: 4px; background: #ff0000; width: 0%; transition: width 10s linear; z-index: 20; }
-
-.card { background: #0a0a0a; border-radius: 6px; border: 1px solid #111; text-decoration: none; overflow: hidden; position: relative; cursor:pointer; padding: 4px; }
-.thumb { position: relative; width: 100%; aspect-ratio: 16/9; overflow: hidden; background: #000; }
-.thumb video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
-.thumb img { position: relative; width: 100%; height: 100%; object-fit: cover; z-index: 2; transition: opacity 0.3s; }
-
 .hd-batch-gold { position: absolute; top: 8px; right: 8px; background: #ffcc00; color: #000; font-size: 9px; font-weight: 900; padding: 2px 6px; border-radius: 3px; z-index: 10; }
-.t-stats { display: flex; justify-content: space-between; padding: 5px 8px; font-size: 10px; color: #888; border-top: 1px solid #111; }
+.t-stats { display: flex; justify-content: space-between; padding: 8px; font-size: 10px; color: #888; border-top: 1px solid #111; }
 
 #tiger-18-parda { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 2000000; display: none; align-items: center; justify-content: center; text-align: center; }
 .parda-box { background: #111; padding: 40px; border: 3px solid #ff0000; border-radius: 15px; max-width: 450px; box-shadow: 0 0 30px #ff0000; }
@@ -539,7 +565,7 @@ header { background: #000; padding: 10px 4%; border-bottom: 2px solid #ff0000; p
     </div>
     <div class='player-box' id="tigerBox">
         <div id="tiger-big-play" onclick="toggleTigerPlay(event)">
-            <svg viewBox="0 0 24 24" style="fill:white; width:45px; height:45px; margin-left:5px;"><path d="M8 5v14l11-7z"/></svg>
+            <svg viewBox="0 0 24 24" style="fill:white;"><path d="M8 5v14l11-7z"/></svg>
         </div>
 
         <div class='tiger-video-wrap'><iframe src="ABOUT:BLANK" allowfullscreen="true"></iframe></div>
@@ -592,7 +618,7 @@ const card = (clickAction, label, tUrl = null, pUrl = null) => {
           ${preview ? `<video src='${preview}' muted loop playsinline></video>` : ''}
           <img src='${thumb}' loading='lazy'/>
         </div>
-        <div style='padding:8px; font-size:11px; font-weight:bold; color:#fff; text-align:center;'>Tiger VIP ${label} Premium Content</div>
+        <div style='padding:12px 8px; font-size:13px; font-weight:bold; color:#fff; text-align:left; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;'>${label}</div>
         <div class='t-stats'>
             <span>👁️ ${Math.floor(Math.random()*900+100)}K</span>
             <span>👍 ${Math.floor(Math.random()*20+80)}%</span>
@@ -650,11 +676,5 @@ const card = (clickAction, label, tUrl = null, pUrl = null) => {
     </div>
 </div>
 
-<div class='modal-overlay' id='pop-dmca'><div class='modal-box'><span class='close-x' onclick='closeLegal("pop-dmca")'>×</span><h3 style="color:#ff0000;">DMCA Policy</h3><p style="color:#aaa; font-size:13px;">Tiger 2.6 is a search engine and does not host content. We strictly follow DMCA guidelines. For removals, contact admin@tiger26.com.</p></div></div>
-<div class='modal-overlay' id='pop-privacy'><div class='modal-box'><span class='close-x' onclick='closeLegal("pop-privacy")'>×</span><h3 style="color:#ff0000;">Privacy Shield</h3><p style="color:#aaa; font-size:13px;">Our Ghost Mode ensures your IP is rotated via residential proxies. No logs are kept of your personal browsing history.</p></div></div>
-<div class='modal-overlay' id='pop-contact'><div class='modal-box'><span class='close-x' onclick='closeLegal("pop-contact")'>×</span><h3 style="color:#ff0000;">Direct Contact</h3><p style="color:#aaa; font-size:13px;">Telegram: @sexyxx1222<br>Email: admin@tiger26.com</p></div></div>
-<div class='modal-overlay' id='pop-18'><div class='modal-box'><span class='close-x' onclick='closeLegal("pop-18")'>×</span><h3 style="color:#ff0000;">18+ Compliance</h3><p style="color:#aaa; font-size:13px;">All models on this site are 18+. This site follows USC 2257 record-keeping regulations for all adult content linked.</p></div></div>
-
-<script src='//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit' type='text/javascript'></script>
 </body>
 </html>
