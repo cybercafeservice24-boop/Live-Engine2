@@ -377,6 +377,7 @@ window.onload = function() { runTigerSecurity(); };
 
 <style>
 /* 🐯 TIGER RESPONSIVE CSS - RAW DNA */
+* { -webkit-tap-highlight-color: transparent !important; outline: none !important; }
 #navbar-iframe, .navbar, .report_abuse, .widget-item-control { display: none !important; }
 .goog-te-banner-frame, #goog-gt-tt, .goog-te-balloon-frame, .goog-te-menu-frame, .skiptranslate { display: none !important; visibility: hidden !important; }
 .goog-text-highlight { background: transparent !important; box-shadow: none !important; }
@@ -659,22 +660,11 @@ const card = (clickAction, label, tUrl = null, pUrl = null) => {
         <a onclick='openLegal("pop-contact")'>CONTACT US</a>
         <a onclick='openLegal("pop-18")'>18+ COMPLIANCE</a>
     </div>
-
-    <div style="margin-top:40px; border-top:1px solid #111; padding-top:20px; color:#333; font-size:10px; text-transform:uppercase; letter-spacing:2px;">
+   <div style="margin-top:40px; border-top:1px solid #111; padding-top:20px; color:#333; font-size:10px; text-transform:uppercase; letter-spacing:2px;">
         © 2026 <b>Tiger 2.6 Premium Network</b>. All Rights Reserved.
     </div>
 </footer>
 
-</div>
-
-<div class='modal-overlay' id='pop-comment-real'>
-    <div class='modal-box'>
-        <span class='close-x' onclick='closeLegal("pop-comment-real")'>×</span>
-        <h3 style="color:#ff0000;">Add Public Comment</h3>
-        <textarea style="width:100%; height:80px; background:#000; color:#fff; border:1px solid #333; padding:10px; border-radius:5px;" placeholder="Write a comment..."></textarea>
-        <button class="btn-act" style="width:100%; margin-top:10px; background:#ff0000;" onclick="alert('Comment Posted Successfully!'); closeLegal('pop-comment-real');">POST COMMENT</button>
-    </div>
-</div>
-
+</footer>
 </body>
 </html>
