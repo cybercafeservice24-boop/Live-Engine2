@@ -17,6 +17,19 @@ var adDone = false;
 var resetTime = 120000; 
 var allTigerVideos = []; 
 
+// --- NEW MENU LOGIC ADDED HERE ---
+function toggleTigerMenu() {
+    var m = document.getElementById('tigerSideMenu');
+    var o = document.getElementById('menuOverlay');
+    if(m.style.left === '0px') { m.style.left = '-320px'; o.style.display = 'none'; }
+    else { m.style.left = '0px'; o.style.display = 'block'; }
+}
+function tigerRealAction(action) {
+    if(action === 'login') alert('🔑 Asli Login System Starting...');
+    if(action === 'signup') alert('📝 Asli Signup System Starting...');
+}
+// --- END NEW MENU LOGIC ---
+
 const tigerLangMap = { 'IN':'hi','ES':'es','SA':'ar','AE':'ar','RU':'ru','FR':'fr','DE':'de','JP':'ja','BR':'pt' };
 
 function googleTranslateElementInit() {
@@ -98,20 +111,35 @@ function stopTigerPreview(el) {
     if(vid) { vid.pause(); img.style.opacity = '1'; }
 }
 
-// 🐯 REAL PLAYER LOGIC INTEGRATION (PLAY BUTTON UI UPGRADED)
 let tigerRotate = 0;
+
+function formatTigerTime(s) {
+    let m = Math.floor(s / 60);
+    m = (m >= 10) ? m : "0" + m;
+    s = Math.floor(s % 60);
+    s = (s >= 10) ? s : "0" + s;
+    return m + ":" + s;
+}
+
 function initTigerRealControls() {
     const v = document.getElementById('tigerRealPlayer');
     const p = document.getElementById('tiger-play-icon');
     const s = document.getElementById('tiger-sound-icon');
     const l = document.getElementById('tiger-real-loader');
     const bigPlay = document.getElementById('tiger-big-play');
+    const tDisplay = document.getElementById('tiger-timer-display');
     
     if(!v || !l) return;
 
     v.addEventListener('timeupdate', () => {
         const pct = (v.currentTime / v.duration) * 100;
         l.style.width = pct + "%";
+        
+        if(tDisplay) {
+            const curTime = formatTigerTime(v.currentTime);
+            const durTime = isNaN(v.duration) ? "00:00" : formatTigerTime(v.duration);
+            tDisplay.innerText = curTime + " / " + durTime;
+        }
     });
 
     window.toggleTigerPlay = function(e) {
@@ -144,17 +172,9 @@ function initTigerRealControls() {
         e.stopPropagation();
         tigerRotate = (tigerRotate + 90) % 360;
         v.style.transform = `rotate(${tigerRotate}deg)`;
-        
-        // Perfect Rotation Fit
-        if(tigerRotate === 90 || tigerRotate === 270) {
-            v.style.width = "auto";
-            v.style.height = "100%";
-            v.style.objectFit = "contain";
-        } else {
-            v.style.width = "100%";
-            v.style.height = "100%";
-            v.style.objectFit = "contain";
-        }
+        v.style.width = "100%";
+        v.style.height = "100%";
+        v.style.objectFit = "contain";
     };
 
     window.fullTiger = function(e) {
@@ -343,7 +363,7 @@ function tigerAction(type, el) {
         el.style.color = '#ff0000';
         el.innerHTML = '👍 LIKED';
     } else if(type === 'comment') {
-        openLegal('pop-comment-real');
+        openLegal('pop-comment');
     } else if(type === 'download') {
         const vid = document.getElementById('tigerRealPlayer');
         if(vid) {
@@ -384,7 +404,6 @@ window.onload = function() { runTigerSecurity(); };
 
 body { top: 0 !important; position: static !important; background: #000; color: #fff; font-family: 'Roboto', sans-serif; margin: 0; padding: 0; overflow-x: hidden; min-height: 100vh; cursor: pointer; }
 
-/* 🐯 NEW: CENTER PLAY BUTTON PULSE - PERFECTLY COMPACT */
 @keyframes tigerPulse {
     0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); transform: translate(-50%, -50%) scale(1); }
     70% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); transform: translate(-50%, -50%) scale(1.05); }
@@ -393,7 +412,7 @@ body { top: 0 !important; position: static !important; background: #000; color: 
 
 #tiger-big-play {
     position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 55px; height: 55px; /* Size Chhota kiya gaya */
+    width: 55px; height: 55px; 
     background: rgba(255, 0, 0, 0.9);
     border-radius: 50%; display: flex; align-items: center; justify-content: center;
     z-index: 501; cursor: pointer; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -402,7 +421,6 @@ body { top: 0 !important; position: static !important; background: #000; color: 
 }
 #tiger-big-play svg { width: 25px; height: 25px; margin-left: 3px; }
 
-/* 🐯 TIGER 2.6 - REAL PLAYER UI UPGRADE */
 .tiger-real-controls {
     position: absolute; bottom: 0; left: 0; width: 100%; 
     background: linear-gradient(transparent, rgba(0,0,0,0.95)); 
@@ -415,7 +433,11 @@ body { top: 0 !important; position: static !important; background: #000; color: 
 .tiger-icon-btn { background: none; border: none; color: #fff; font-size: 18px; cursor: pointer; padding: 5px; display: flex; align-items: center; justify-content: center; }
 .tiger-icon-btn:hover { color: #ff0000; }
 
-.quality-wrapper { position: relative; margin-left: auto; }
+/* 🛡️ DRIVER STYLE */
+.tiger-driver-box { margin-left: auto; display: flex; align-items: center; background: rgba(255,0,0,0.15); padding: 4px 10px; border-radius: 4px; border: 1px solid #ff0000; }
+#tiger-timer-display { font-family: 'Courier New', monospace; font-size: 12px; color: #00ff00; min-width: 90px; text-align: center; }
+
+.quality-wrapper { position: relative; }
 .tiger-quality-menu {
     position: absolute; bottom: 40px; right: 0; background: rgba(10,10,10,0.9);
     border: 1px solid #333; border-radius: 5px; display: none; flex-direction: column; width: 100px;
@@ -425,14 +447,13 @@ body { top: 0 !important; position: static !important; background: #000; color: 
 
 .player-box { 
     background:#000; width:100%; 
-    max-width: 1050px; /* 2 Points bada kiya gaya */
+    max-width: 1050px; 
     margin: 0 auto; aspect-ratio:16/9; position:relative; overflow:hidden; border: 1px solid #222; 
     box-shadow: 0 10px 30px rgba(0,0,0,0.5);
 }
 .tiger-video-wrap { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; display:flex; align-items:center; justify-content:center; }
 .tiger-video-wrap video { transition: transform 0.4s ease-in-out; }
 
-/* 🐯 HOME PAGE BOXES - 2 POINTS BIG & PREMIUM */
 .post-outer { display: grid; gap: 20px; padding: 20px 4%; grid-template-columns: repeat(2, 1fr); }
 @media (min-width: 768px) { .post-outer { grid-template-columns: repeat(3, 1fr); } }
 @media (min-width: 1200px) { .post-outer { grid-template-columns: repeat(5, 1fr); } }
@@ -448,15 +469,29 @@ body { top: 0 !important; position: static !important; background: #000; color: 
 .thumb video { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: 1; }
 .thumb img { position: relative; width: 100%; height: 100%; object-fit: cover; z-index: 2; transition: opacity 0.3s; }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
     #tiger-big-play { width: 48px; height: 48px; }
     #tiger-big-play svg { width: 20px; height: 20px; }
     .player-box { max-width: 100%; border-radius: 0; }
     .post-outer { gap: 10px; padding: 10px; }
+    .tiger-driver-box { display: none; }
 }
 
-.tiger-footer-pro { background: #050505; border-top: 3px solid #ff0000; padding: 60px 20px 30px; text-align: center; margin-top: 50px; }
+/* NEW SIDE MENU STYLE */
+#tigerSideMenu { position: fixed; top: 0; left: -320px; width: 300px; height: 100%; background: #0a0a0a; z-index: 99999; transition: 0.4s; border-right: 2px solid #ff0000; display: flex; flex-direction: column; overflow-y: auto; }
+#menuOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 99998; display: none; backdrop-filter: blur(5px); }
+.m-profile { text-align: center; padding: 30px 20px; border-bottom: 1px solid #1a1a1a; }
+.m-prof-icon { font-size: 50px; background: #000; border: 2px solid #ff0000; width: 80px; height: 80px; border-radius: 50%; line-height: 80px; margin: 0 auto 15px; }
+.m-auth-btns { display: flex; gap: 10px; margin-top: 15px; }
+.m-btn { flex: 1; padding: 10px; border-radius: 4px; font-weight: 900; font-size: 11px; cursor: pointer; border: none; text-transform: uppercase; }
+.m-list { flex-grow: 1; padding: 15px; }
+.m-list a { display: flex; align-items: center; color: #eee; text-decoration: none; padding: 14px 10px; border-bottom: 1px solid #111; font-size: 14px; font-weight: bold; }
+.m-list a span { margin-right: 15px; }
+.m-footer { padding: 20px; border-top: 1px solid #1a1a1a; }
+.m-close { position: absolute; top: 15px; right: 15px; color: #ff0000; font-size: 24px; cursor: pointer; font-weight: bold; }
+/* END MENU STYLE */
+
+.tiger-footer-pro { background: #050505; border-top: 3px solid #ff0000; padding: 60px 20px 0; text-align: center; margin-top: 50px; }
 .social-icons-wrap { display: flex; justify-content: center; gap: 15px; margin-bottom: 25px; }
 .social-btn { width: 40px; height: 40px; background: #111; border: 1px solid #333; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; text-decoration: none; font-size: 18px; transition: 0.3s; }
 .social-btn:hover { background: #ff0000; transform: translateY(-5px); border-color: #fff; }
@@ -467,6 +502,8 @@ body { top: 0 !important; position: static !important; background: #000; color: 
 
 .f-links a { color: #fff; text-decoration: none; margin: 0 12px; font-size: 12px; font-weight: bold; cursor: pointer; transition: 0.2s; }
 .f-links a:hover { color: #ff0000; }
+
+.tiger-copyright-bar { background: #000; border-top: 1px solid #111; padding: 25px 20px; color: #444; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
 
 #play-mask { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 500; cursor: pointer; background: rgba(0,0,0,0.1); display: none; align-items: center; justify-content: center; }
 .x-loader-bar { position: absolute; bottom: 0; left: 0; height: 4px; background: #ff0000; width: 0%; transition: width 10s linear; z-index: 20; }
@@ -494,13 +531,41 @@ header { background: #000; padding: 10px 4%; border-bottom: 2px solid #ff0000; p
 .live-dot { color: #ff0000; font-weight: bold; animation: blink 1s infinite; }
 
 .modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.95); z-index:1000000; align-items:center; justify-content:center; }
-.modal-box { background:#111; padding:30px; border:2px solid #222; border-radius:15px; max-width:650px; width:90%; position:relative; box-shadow: 0 0 20px #ff0000; }
+.modal-box { background:#111; padding:30px; border:2px solid #222; border-radius:15px; max-width:650px; width:90%; position:relative; box-shadow: 0 0 20px #ff0000; text-align: left; }
 .close-x { position:absolute; top:15px; right:15px; color:#fff; font-size:24px; cursor:pointer; }
 </style>
 </head>
 
 <body onclick='triggerEarning()'>
 <div id='google_translate_element' style='display:none;'></div>
+
+<div id="menuOverlay" onclick="toggleTigerMenu()"></div>
+<div id="tigerSideMenu">
+    <span class="m-close" onclick="toggleTigerMenu()">&times;</span>
+    <div class="m-profile">
+        <div class="m-prof-icon">👤</div>
+        <div style="font-weight:900;">TIGER 2.6 GUEST</div>
+        <div class="m-auth-btns">
+            <button class="m-btn" style="background:#222; color:#fff;" onclick="tigerRealAction('login')">Login</button>
+            <button class="m-btn" style="background:#ff0000; color:#fff;" onclick="tigerRealAction('signup')">Sign Up</button>
+        </div>
+    </div>
+    <div class="m-list">
+        <a href="#"><span>🕒</span> Watch History</a>
+        <a href="#"><span>❤️</span> My Favorites</a>
+        <a href="#"><span>💾</span> Watch Later</a>
+        <a href="#" style="color:#ffcc00;"><span>🔔</span> Follow for Updates</a>
+        <a href="mailto:nandankumar@tiger.com"><span>✉️</span> Contact Developer</a>
+    </div>
+    <div class="m-footer">
+        <div style="border-left:3px solid #ff0000; padding-left:12px;">
+            <div style="font-size:9px; color:#666; letter-spacing:2px;">DEVELOPER</div>
+            <div style="color:#fff; font-weight:bold; font-size:14px;">Mr. Nandan Kumar 🇮🇳</div>
+            <div style="color:#ffcc00; font-size:10px; font-weight:900;">POWER OF BIHAR</div>
+        </div>
+        <div style="font-size:14px; font-weight:900; color:#fff; margin-top:10px; text-transform:uppercase;">DESI SEXY <span style="color:#ff0000;">18+ HD VIP</span></div>
+    </div>
+</div>
 
 <div id='tiger-compliance' style='display:none; background:#111; color:#333; padding:10px; font-size:11px; text-align:center;'>
   18+ Restricted Content: This domain follows international age-gate policies via user interaction verification.
@@ -518,7 +583,10 @@ header { background: #000; padding: 10px 4%; border-bottom: 2px solid #ff0000; p
 <div id='vip-master-engine' style='display:none;'>
 <header>
 <div class='header-flex'>
-<a class='brand' href='/'>DESI SEXY<span>18+ HD VIP</span></a>
+<div style="display:flex; align-items:center;">
+    <button onclick="toggleTigerMenu()" style="background:none; border:none; color:#fff; font-size:26px; cursor:pointer; margin-right:15px;">☰</button>
+    <a class='brand' href='/'>DESI SEXY<span>18+ HD VIP</span></a>
+</div>
 <div class='search-container'>
     <div class='search-bar-pro'>
       <input placeholder='Search videos...' type='text' id='pro-search'/>
@@ -577,11 +645,17 @@ header { background: #000; padding: 10px 4%; border-bottom: 2px solid #ff0000; p
             </div>
             <div class="tiger-btn-row">
                 <button class="tiger-icon-btn" id="tiger-play-icon" onclick="toggleTigerPlay(event)">⏸</button>
-                <button class="tiger-icon-btn" id="tiger-sound-icon" onclick="toggleTigerMute(event)">🔊</button>
                 
+                <div id="tiger-timer-display">00:00 / 00:00</div>
+
+                <button class="tiger-icon-btn" id="tiger-sound-icon" onclick="toggleTigerMute(event)">🔊</button>
                 <button class="tiger-icon-btn" onclick="rotateTiger(event)">🔄</button>
                 <button class="tiger-icon-btn" onclick="fullTiger(event)">⛶</button>
                 
+                <div class="tiger-driver-box">
+                    <span style="font-size:11px; color:#fff; font-weight:900;">Mr. Nandan Kumar <span style="color:#ff0000;">| Power of Bihar</span> 🇮🇳</span>
+                </div>
+
                 <div class="quality-wrapper">
                     <button class="tiger-icon-btn" onclick="toggleQualityMenu(event)">⚙️ <span id="current-quality" style="font-size:10px; margin-left:5px; color:#ffcc00;">1080p</span></button>
                     <div class="tiger-quality-menu" id="tigerQualityMenu">
@@ -650,21 +724,22 @@ const card = (clickAction, label, tUrl = null, pUrl = null) => {
         <b>चेतावनी (Disclaimer):</b> टाइगर 2.6 एक वयस्क मनोरंजन मंच है। इस साइट पर सभी सामग्री 18 वर्ष या उससे अधिक आयु के वयस्कों के लिए है। हम अवैध सामग्री के खिलाफ शून्य-सहिष्णुता नीति रखते हैं। सभी कलाकार फिल्मांकन के समय कानूनी रूप से वयस्क थे। साइट का उपयोग करके, आप हमारी शर्तों से सहमत होते हैं।
     </div>
 
-    <div style="max-width:850px; margin:0 auto 30px; color:#666; font-size:11px; line-height:1.8;">
-        Tiger 2.6 is a globally optimized adult search engine. By accessing this site, you certify that you are of legal age in your jurisdiction (18+). We operate using <b>Point 21 Ghost Mode</b> for maximum privacy and security. All record-keeping requirements are maintained as per USC 2257.
-    </div>
-
     <div class='f-links'>
         <a onclick='openLegal("pop-dmca")'>DMCA</a>
         <a onclick='openLegal("pop-privacy")'>PRIVACY POLICY</a>
         <a onclick='openLegal("pop-contact")'>CONTACT US</a>
         <a onclick='openLegal("pop-18")'>18+ COMPLIANCE</a>
     </div>
-   <div style="margin-top:40px; border-top:1px solid #111; padding-top:20px; color:#333; font-size:10px; text-transform:uppercase; letter-spacing:2px;">
-        © 2026 <b>Tiger 2.6 Premium Network</b>. All Rights Reserved.
+
+    <div class="tiger-copyright-bar">
+        Copyright &copy; 2024 - 2026 <b>TIGER 2.6 NETWORK</b> | All Rights Reserved.
     </div>
 </footer>
+</div>
 
-</footer>
+<div id="pop-comment" class="modal-overlay"><div class="modal-box"><span class="close-x" onclick="closeLegal('pop-comment')">&times;</span><h3 style="color:#ff0000">COMMENTS</h3><p>Comments are currently locked for guest users. Please login to participate in the Tiger 2.6 community.</p></div></div>
+
+<div id="pop-dmca" class="modal-overlay"><div class="modal-box"><span class="close-x" onclick="closeLegal('pop-dmca')">&times;</span><h3 style="color:#ff0000">DMCA POLICY</h3><p>Tiger 2.6 is a search engine and does not host any content on its servers. We link to third-party content. If you are a copyright owner and want content removed, please contact the hosting site.</p></div></div>
+
 </body>
 </html>
